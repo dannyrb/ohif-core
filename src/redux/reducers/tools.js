@@ -1,27 +1,68 @@
+import cloneDeep from 'lodash.clonedeep';
 import log from '../../log';
 
-const defaultButtons = [
+const buttons = [
   // {
   //   command: 'Pan',
   //   type: 'tool',
   //   text: 'Pan',
-  //   svgUrl: '/icons.svg#icon-tools-pan',
+  //   icon: 'arrows',
   //   active: false
   // }
 ];
 
-const tools = (state = { buttons: defaultButtons }, action) => {
+const tools = (state = { buttons: buttons }, action) => {
   switch (action.type) {
-    case 'SET_TOOL_ACTIVE':
-      const item = state.buttons.find(button => button.command === action.tool);
-      let buttons = [];
+    case 'SET_TOOL_ACTIVE': {
+      //const buttons = cloneDeep(state.buttons);
+      let item;
 
+      // TODO: Just pass this info in with the action...
+      // Try to find item in parent or child button
+      for (let i = 0; i < state.buttons.length; i++) {
+        const parentButton = state.buttons[i];
+
+        if (parentButton.buttons) {
+          for (let j = 0; j < parentButton.buttons.length; j++) {
+            const childButton = parentButton.buttons[j];
+
+            if (childButton.command === action.tool) {
+              item = childButton;
+              break;
+            }
+          }
+        }
+
+        if (parentButton.command === action.tool) {
+          item = parentButton;
+        }
+        if (item) {
+          break;
+        }
+      }
+
+      // TODO: We don't need to do any of this...
+      // Just record the `activeTool`, and compute the display prop in the component
+      let buttons = [];
       if (item && item.type === 'tool') {
         buttons = state.buttons.map(button => {
           if (button.command === action.tool) {
             button.active = true;
           } else if (button.type === 'tool') {
             button.active = false;
+          }
+
+          // Child buttons
+          if (button.buttons) {
+            button.buttons = button.buttons.map(childButton => {
+              if (childButton.command === action.tool) {
+                childButton.active = true;
+              } else if (childButton.type === 'tool') {
+                childButton.active = false;
+              }
+
+              return childButton;
+            });
           }
 
           return button;
@@ -34,6 +75,7 @@ const tools = (state = { buttons: defaultButtons }, action) => {
       return {
         buttons,
       };
+    }
     case 'SET_AVAILABLE_BUTTONS':
       return {
         buttons: action.buttons,
